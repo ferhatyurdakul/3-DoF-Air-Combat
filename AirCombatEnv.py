@@ -29,15 +29,18 @@ class F16Environment(gym.Env):
         self.mu_limits = [-5*np.pi/12, 5*np.pi/12]  # Bank angle in radians
 
         # Initialize two aircraft
-        self.aircraft1 = Aircraft(0, 0, 1000, 350, 0, 0)
-        self.aircraft2 = Aircraft(0, 200, 1000, 350, np.pi, 0)
+        self.aircraft1 = Aircraft(0, 0, 1000, 250, 0, 0)
+        self.aircraft2 = Aircraft(0, 1000, 1000, 250, np.pi, 0)
+
+        # Constants
+        self.distance_limit = 1000
 
     def reset(self):
         """
         Reset the environment to the initial state.
         """
-        self.aircraft1 = Aircraft(0, 0, 1000, 350, 0, 0)
-        self.aircraft2 = Aircraft(0, 200, 1000, 350, np.pi, 0)
+        self.aircraft1 = Aircraft(0, 0, 1000, 250, 0, 0)
+        self.aircraft2 = Aircraft(0, 1000, 1000, 250, np.pi, 0)
         
         observation = self._get_observation()
         return observation
@@ -69,23 +72,26 @@ class F16Environment(gym.Env):
 
         # Update aircraft states
         self.aircraft1.update(nx1, nz1, mu1)
-        self.aircraft2.update(nx2, nz2, mu2)
+        # self.aircraft2.update(nx2, nz2, mu2) # TODO: Aircraft Stationary
 
         # Check wez
         if self.aircraft1.WEZ(self.aircraft2.x, self.aircraft2.y, self.aircraft2.h):
             print("Aircraft 1 wins")
             done = True
+            reward = 10
         if self.aircraft2.WEZ(self.aircraft1.x, self.aircraft1.y, self.aircraft1.h):
             print("Aircraft 2 wins")
             done = True
+            reward = -5
         else:
             done = False
+            reward = 0
 
         # Get the new observation
         observation = self._get_observation()
 
         # Calculate reward (can be customized further)
-        reward = self._calculate_reward()
+        reward += self._calculate_reward()
 
         info = {}
         return observation, reward, done, info
@@ -94,7 +100,7 @@ class F16Environment(gym.Env):
         """
         Scale an action from [-1, 1] to the real range specified by limits.
         """
-        return limits[0] + (action + 1) * 0.5 * (limits[1] - limits[0])
+        return limits[0] + (action + 1) * (limits[1] - limits[0]) / (2)
 
     def _get_observation(self):
         """
@@ -114,8 +120,15 @@ class F16Environment(gym.Env):
         """
         Placeholder reward function. Customize based on objectives.
         """
-        # Example: Maximize altitude for aircraft1
-        reward = self.aircraft1.h
+        distance = np.sqrt((self.aircraft1.x - self.aircraft2.x) ** 2 +
+                           (self.aircraft1.y - self.aircraft2.y) ** 2 +
+                           (self.aircraft1.y - self.aircraft2.y) ** 2)
+
+        if distance > self.distance_limit:
+            distance = self.distance_limit
+
+        reward = 1 - distance/self.distance_limit
+
         return reward
 
     def render(self):
@@ -242,7 +255,8 @@ if __name__ == "__main__":
 
     for i in range(10):
         action = np.random.uniform(0, 0, size=(6,))
-        obs, reward, done, info = env.step(action)
-        env.render()
+        obs, reward, done, info = env.step([-1,-1,0,0,0,0])
+        
+    env.aircraft1.render()
 
     env.trajectory_plot()

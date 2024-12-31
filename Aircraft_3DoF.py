@@ -171,8 +171,8 @@ if __name__ == "__main__":
     F16 = Aircraft(0, 0, 1000, 350, 0, 0)
 
     # Simulate the movement of F16 for 20 seconds
-    for i in np.arange(20):
-        if i < 10:
+    for i in np.arange(10):
+        if i < -10:
             F16.update(1.0, 6.0, 1.22)
         else:
             F16.update(0, 0, 0)
