@@ -57,7 +57,7 @@ class Aircraft:
             self.log["psi"].append(self.psi)
             self.log["gamma"].append(self.gamma)
 
-    def WEZ(self, px, py, ph, aperture=2, height=500):
+    def WEZ(self, px, py, ph, aperture=20, height=300):
         """
         Checks if a given point is within the Weapon Engagement Zone (WEZ) cone.
         Parameters:
@@ -76,24 +76,23 @@ class Aircraft:
         dh = ph - self.h
 
         # Distance to the point
-        distance = np.sqrt(dx**2 + dy**2 + dh**2)
-
-        # Check if point is within cone height
-        if distance > height:
-            return False
+        point_distance = np.sqrt(dx**2 + dy**2 + dh**2)
 
         # Direction of the point relative to aircraft heading
         heading_vector = np.array([np.cos(self.psi) * np.cos(self.gamma),
                                    np.sin(self.psi) * np.cos(self.gamma),
                                    np.sin(self.gamma)])
-        point_vector = np.array([dx, dy, dh]) / distance  # Normalize to unit vector
+        point_vector = np.array([dx, dy, dh]) / point_distance  # Normalize to unit vector
 
         # Compute the angle between the heading vector and point vector
         cosine_angle = np.dot(heading_vector, point_vector)
         angle = np.degrees(np.arccos(cosine_angle))
 
+        # Distance from the tip of the cone to the bottom surface of the cone with the angle of point
+        cone_distance = height / np.cos(np.radians(angle))
+
         # Check if point is within aperture angle
-        return angle <= aperture / 2
+        return angle <= aperture / 2 and point_distance <= cone_distance 
     
     def render(self):
         fig = plt.figure(figsize=(10, 7))

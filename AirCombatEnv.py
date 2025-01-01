@@ -167,7 +167,7 @@ class F16Environment(gym.Env):
             self._ax.set_title("Aircraft Movements")
             self._ax.legend()
 
-        def compute_heading_and_wez(aircraft, heading_length=100, cone_height=500, aperture=np.radians(2 / 2)):
+        def compute_heading_and_wez(aircraft, heading_length=100, cone_height=300, aperture=np.radians(20 / 2)):
             # Compute heading vector
             heading_vector = np.array([
                 np.cos(aircraft.psi) * np.cos(aircraft.gamma),
