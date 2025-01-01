@@ -4,11 +4,12 @@ from stable_baselines3 import SAC
 env = F16Environment()
 
 model_name = "sac_constant_point_following_v1"
+log_file = model_name + "_tensorboard"
 
 train = True
 
 if train:
-    model = SAC("MlpPolicy", env, verbose=1)
+    model = SAC("MlpPolicy", env, verbose=1, tensorboard_log=log_file)
 
     model.learn(total_timesteps=250_000, log_interval=4)
 
