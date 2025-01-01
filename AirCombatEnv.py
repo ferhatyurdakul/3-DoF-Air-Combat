@@ -13,7 +13,7 @@ class F16Environment(gym.Env):
         super(F16Environment, self).__init__()
 
         # Action space: nx, nz, mu for both aircrafts in range [-1, 1]
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(6,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
 
         # Observation space: Positions, velocities, and angles for both aircrafts
         self.observation_space = spaces.Box(
@@ -24,8 +24,8 @@ class F16Environment(gym.Env):
         )
 
         # Limits for nx, nz, and mu for the F-16
-        self.nx_limits = [0.0, 3.0]   # Longitudinal load factor
-        self.nz_limits = [0.0, 9.0]   # Normal load factor (G-forces)
+        self.nx_limits = [-1.0, 1.5]   # Longitudinal load factor
+        self.nz_limits = [-3.0, 9.0]   # Normal load factor (G-forces)
         self.mu_limits = [-5*np.pi/12, 5*np.pi/12]  # Bank angle in radians
 
         # Initialize two aircraft
@@ -67,9 +67,9 @@ class F16Environment(gym.Env):
         nz1 = self._scale_action(action[1], self.nz_limits)
         mu1 = self._scale_action(action[2], self.mu_limits)
 
-        nx2 = self._scale_action(action[3], self.nx_limits)
-        nz2 = self._scale_action(action[4], self.nz_limits)
-        mu2 = self._scale_action(action[5], self.mu_limits)
+        # nx2 = self._scale_action(action[3], self.nx_limits)
+        # nz2 = self._scale_action(action[4], self.nz_limits)
+        # mu2 = self._scale_action(action[5], self.mu_limits)
 
         # Update aircraft states
         self.aircraft1.update(nx1, nz1, mu1)
@@ -132,7 +132,8 @@ class F16Environment(gym.Env):
             done = False
             reward += 0
 
-        if distance > 2000:
+        if distance > self.distance_limit:
+            print("Distance exceeded")
             done = True
             reward += -5
 
@@ -227,7 +228,7 @@ class F16Environment(gym.Env):
         self._ax.set_zlim(min(all_h) - 200, max(all_h) + 200)
 
         # Redraw the figure
-        plt.pause(0.01)
+        plt.pause(0.1)
 
     def trajectory_plot(self):
         """
@@ -264,6 +265,6 @@ if __name__ == "__main__":
         action = np.random.uniform(0, 0, size=(6,))
         obs, reward, done, info = env.step([-1,-1,0,0,0,0])
         
-    env.aircraft1.render()
+    env.render()
 
     env.trajectory_plot()
