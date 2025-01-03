@@ -30,12 +30,15 @@ class F16Environment(gym.Env):
 
         # Initialize two aircraft
         self.aircraft1 = Aircraft(0, 0, 1000, 250, 0, 0)
-        self.aircraft2 = Aircraft(0, 1000, 1000, 250, np.pi, 0)
+        self.aircraft2 = Aircraft(0, 0, 1000, 200, np.pi, 0, constant_speed=True)
 
         # Constants
         self.distance_limit = 2000
 
         self.number_of_steps = 0
+
+        self.ally_score = 0
+        self.enemy_score = 0
 
     def reset(self):
         """
@@ -47,6 +50,8 @@ class F16Environment(gym.Env):
         observation = self._get_observation()
 
         self.number_of_steps = 0
+        self.ally_score = 0
+        self.enemy_score = 0
 
         return observation
 
@@ -71,13 +76,15 @@ class F16Environment(gym.Env):
         nz1 = self._scale_action(action[1], self.nz_limits)
         mu1 = self._scale_action(action[2], self.mu_limits)
 
-        # nx2 = self._scale_action(action[3], self.nx_limits)
-        # nz2 = self._scale_action(action[4], self.nz_limits)
-        # mu2 = self._scale_action(action[5], self.mu_limits)
+        # Constants for circular motion
+        bank_angle = 5*np.pi/12  # 45 degrees
+        nz2 = 1 / np.cos(bank_angle)  # Coordinated turn
+        nx2 = 1.0  # Maintain level flight
+        mu2 = bank_angle  # Constant bank angle
 
         # Update aircraft states
         self.aircraft1.update(nx1, nz1, mu1)
-        # self.aircraft2.update(nx2, nz2, mu2) # TODO: Aircraft Stationary
+        self.aircraft2.update(nx2, nz2, mu2) # Circular motion
         
         # Get the new observation
         observation = self._get_observation()
@@ -130,13 +137,17 @@ class F16Environment(gym.Env):
 
         # WEZ reward
         if self.aircraft1.WEZ(self.aircraft2.x, self.aircraft2.y, self.aircraft2.h):
-            print("Aircraft 1 wins")
-            done = True
+            self.ally_score += 1
             reward += 10
+            if self.ally_score >= 10:
+                print("Aircraft 1 wins")
+                done = True
         if self.aircraft2.WEZ(self.aircraft1.x, self.aircraft1.y, self.aircraft1.h):
-            print("Aircraft 2 wins")
-            done = True
-            reward += 0
+            self.enemy_score += 1
+            reward -= 1
+            if self.ally_score >= 10:
+                print("Aircraft 2 wins")
+                done = False
         else:
             done = False
             reward += 0

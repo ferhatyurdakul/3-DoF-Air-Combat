@@ -3,11 +3,14 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 class Aircraft:
-    def __init__(self, x, y, h, v, psi, gamma):
+    def __init__(self, x, y, h, v, psi, gamma, constant_speed=False):
         # Positions
         self.x = x
         self.y = y
         self.h = h
+
+        self.constant_speed = constant_speed
+        self.max_speed_limit = 600
 
         # Velocity
         self.v = v
@@ -45,7 +48,13 @@ class Aircraft:
             self.y += y_dot * self.dt
             self.h += h_dot * self.dt
 
-            self.v += v_dot * self.dt
+            if not self.constant_speed:
+                self.v += v_dot * self.dt
+
+            # Limit speed
+            if self.v > self.max_speed_limit:
+                self.v = self.max_speed_limit
+
             self.psi += psi_dot * self.dt
             self.gamma += gamma_dot * self.dt
 

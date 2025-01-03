@@ -1,17 +1,20 @@
-from AirCombatEnv import F16Environment
+from AirCombatEnv_2 import F16Environment
 from stable_baselines3 import SAC
 
 env = F16Environment()
 
-model_name = "sac_constant_point_following_v1"
+curriculum_model = "sac_constant_point_following_v500k_v2"
+model_name = "sac_circular_motion_following_v500k"
 log_file = model_name + "_tensorboard"
 
 train = True
 
+model = SAC.load(curriculum_model)
+
 if train:
     model = SAC("MlpPolicy", env, verbose=1, tensorboard_log=log_file)
 
-    model.learn(total_timesteps=250_000, log_interval=4)
+    model.learn(total_timesteps=500_000, log_interval=4)
 
     model.save(model_name)
 
