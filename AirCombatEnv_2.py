@@ -33,7 +33,7 @@ class F16Environment(gym.Env):
         self.aircraft2 = Aircraft(0, 0, 1000, 200, np.pi, 0, constant_speed=True)
 
         # Constants
-        self.distance_limit = 2000
+        self.distance_limit = 10000
 
         self.number_of_steps = 0
 
@@ -45,7 +45,7 @@ class F16Environment(gym.Env):
         Reset the environment to the initial state.
         """
         self.aircraft1 = Aircraft(0, 0, 1000, 250, 0, 0)
-        self.aircraft2 = Aircraft(0, 1000, 1000, 250, np.pi, 0)
+        self.aircraft2 = Aircraft(0, 1000, 1000, 250, np.pi, 0, constant_speed=True)
         
         observation = self._get_observation()
 
@@ -96,7 +96,7 @@ class F16Environment(gym.Env):
 
         self.number_of_steps += 1
 
-        if self.number_of_steps == 1000:
+        if self.number_of_steps == 2000:
             done = True
 
         return observation, reward, done, info
@@ -112,11 +112,10 @@ class F16Environment(gym.Env):
         Combine the states of both aircraft into a single observation.
         """
         obs1 = [
-            self.aircraft1.x, self.aircraft1.y, self.aircraft1.h,
-            self.aircraft1.v, self.aircraft1.psi, self.aircraft1.gamma
-        ]
+            (self.aircraft1.x - self.aircraft2.x), (self.aircraft1.y - self.aircraft2.y), (self.aircraft1.h - self.aircraft2.h),
+        ] / self.distance_limit
         obs2 = [
-            self.aircraft2.x, self.aircraft2.y, self.aircraft2.h,
+            self.aircraft1.v, self.aircraft1.psi, self.aircraft1.gamma,
             self.aircraft2.v, self.aircraft2.psi, self.aircraft2.gamma
         ]
         return np.array(obs1 + obs2, dtype=np.float32)

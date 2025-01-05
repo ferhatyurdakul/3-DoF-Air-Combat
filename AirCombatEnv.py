@@ -19,22 +19,22 @@ class F16Environment(gym.Env):
         self.observation_space = spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(12,),  # 6 parameters for each aircraft
+            shape=(9,),  # 3 relative position, 3 own params (speed, psi, gamma), 3 enemy params (speed, psi, gamma)
             dtype=np.float32
         )
 
-        # Limits for nx, nz, and mu for the F-16
+        # Action limits for nx, nz, and mu for the F-16
         self.nx_limits = [-1.0, 1.5]   # Longitudinal load factor
         self.nz_limits = [-3.0, 9.0]   # Normal load factor (G-forces)
-        self.mu_limits = [-5*np.pi/12, 5*np.pi/12]  # Bank angle in radians
+        self.mu_limits = [-5 * np.pi/12, 5 * np.pi/12]  # Bank angle in radians
 
         # Initialize two aircraft
         self.aircraft1 = Aircraft(0, 0, 1000, 250, 0, 0)
         self.aircraft2 = Aircraft(0, 1000, 1000, 250, np.pi, 0)
 
-        # Constants
+        # Environment parameters
         self.distance_limit = 2000
-
+        self.step_limit = 1000
         self.number_of_steps = 0
 
     def reset(self):
@@ -71,13 +71,8 @@ class F16Environment(gym.Env):
         nz1 = self._scale_action(action[1], self.nz_limits)
         mu1 = self._scale_action(action[2], self.mu_limits)
 
-        # nx2 = self._scale_action(action[3], self.nx_limits)
-        # nz2 = self._scale_action(action[4], self.nz_limits)
-        # mu2 = self._scale_action(action[5], self.mu_limits)
-
         # Update aircraft states
         self.aircraft1.update(nx1, nz1, mu1)
-        # self.aircraft2.update(nx2, nz2, mu2) # TODO: Aircraft Stationary
         
         # Get the new observation
         observation = self._get_observation()
@@ -89,7 +84,8 @@ class F16Environment(gym.Env):
 
         self.number_of_steps += 1
 
-        if self.number_of_steps == 1000:
+        # Check if the the step limit is reached or not
+        if self.number_of_steps >= self.step_limit:
             done = True
 
         return observation, reward, done, info
@@ -104,14 +100,24 @@ class F16Environment(gym.Env):
         """
         Combine the states of both aircraft into a single observation.
         """
+        # Normalizing the observations
+        # Relative position
         obs1 = [
-            self.aircraft1.x, self.aircraft1.y, self.aircraft1.h,
-            self.aircraft1.v, self.aircraft1.psi, self.aircraft1.gamma
+            (self.aircraft1.x - self.aircraft2.x) / self.distance_limit, 
+            (self.aircraft1.y - self.aircraft2.y) / self.distance_limit, 
+            (self.aircraft1.h - self.aircraft2.h) / self.distance_limit,
         ]
+        
+        # Speed, psi and gamma
         obs2 = [
-            self.aircraft2.x, self.aircraft2.y, self.aircraft2.h,
-            self.aircraft2.v, self.aircraft2.psi, self.aircraft2.gamma
+            self.aircraft1.v / self.aircraft1.max_speed_limit, 
+            self.aircraft1.psi / self.aircraft1.psi_limit, 
+            self.aircraft1.gamma / self.aircraft1.gamma_limit,
+            self.aircraft2.v / self.aircraft2.max_speed_limit, 
+            self.aircraft2.psi / self.aircraft2.psi_limit, 
+            self.aircraft2.gamma / self.aircraft2.gamma_limit
         ]
+
         return np.array(obs1 + obs2, dtype=np.float32)
 
     def _calculate_reward(self):
@@ -136,11 +142,12 @@ class F16Environment(gym.Env):
         if self.aircraft2.WEZ(self.aircraft1.x, self.aircraft1.y, self.aircraft1.h):
             print("Aircraft 2 wins")
             done = True
-            reward += 0
+            reward -= 2
         else:
             done = False
             reward += 0
 
+        # Distance limit penalty
         if distance > self.distance_limit:
             done = True
             reward += -5
@@ -262,17 +269,3 @@ class F16Environment(gym.Env):
 
         # Show the plot
         plt.show()
-
-# Example usage
-if __name__ == "__main__":
-    env = F16Environment()
-    obs = env.reset()
-    done = False
-
-    for i in range(10):
-        action = np.random.uniform(0, 0, size=(6,))
-        obs, reward, done, info = env.step([-1,-1,0,0,0,0])
-        
-    env.render()
-
-    env.trajectory_plot()
