@@ -5,7 +5,7 @@ from stable_baselines3 import SAC
 env = F16Environment()
 
 # File names
-model_name = "sac_stationary_point_following_1M_v1"
+model_name = "sac_stationary_point_following_500K_v1"
 log_file  = model_name + "/graphs"
 save_file = model_name + "/saves"
 
@@ -14,7 +14,7 @@ train = True
 if train:
     model = SAC("MlpPolicy", env, verbose=1, tensorboard_log=log_file)
     
-    model.learn(total_timesteps=1_000_000, log_interval=4)
+    model.learn(total_timesteps=500_000, log_interval=4)
 
     model.save(model_name + "/sac")
 

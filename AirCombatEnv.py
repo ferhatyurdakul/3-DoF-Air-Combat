@@ -127,25 +127,23 @@ class F16Environment(gym.Env):
         done = False
         reward = 0
 
+        # WEZ reward
+        if self.aircraft1.WEZ(self.aircraft2.x, self.aircraft2.y, self.aircraft2.h):
+            done = True
+            reward += 10
+        elif self.aircraft2.WEZ(self.aircraft1.x, self.aircraft1.y, self.aircraft1.h):
+            done = True
+            reward -= 2
+        else:
+            done = False
+            reward += 0
+
         # Distance reward
         distance = np.sqrt((self.aircraft1.x - self.aircraft2.x) ** 2 +
                            (self.aircraft1.y - self.aircraft2.y) ** 2 +
                            (self.aircraft1.h - self.aircraft2.h) ** 2)
 
         reward += 1 - distance/self.distance_limit
-
-        # WEZ reward
-        if self.aircraft1.WEZ(self.aircraft2.x, self.aircraft2.y, self.aircraft2.h):
-            print("Aircraft 1 wins")
-            done = True
-            reward += 10
-        if self.aircraft2.WEZ(self.aircraft1.x, self.aircraft1.y, self.aircraft1.h):
-            print("Aircraft 2 wins")
-            done = True
-            reward -= 2
-        else:
-            done = False
-            reward += 0
 
         # Distance limit penalty
         if distance > self.distance_limit:

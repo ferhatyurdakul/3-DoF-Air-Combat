@@ -23,6 +23,7 @@ class Aircraft:
         # Limits
         self.constant_speed = constant_speed
         self.max_speed_limit = 600
+        self.min_speed_limit = 10
         self.psi_limit = 2 * np.pi
         self.gamma_limit = np.pi / 4
 
@@ -58,11 +59,10 @@ class Aircraft:
             self.gamma += gamma_dot * self.dt
 
             # Limit values
-            if self.v > self.max_speed_limit:
-                self.v = self.max_speed_limit
+            self.v = np.clip(self.v, self.min_speed_limit, self.max_speed_limit)
 
             self.psi %= self.psi_limit
-            self.gamma = np.clip(self.gamma, self.gamma_limit, self.gamma_limit)
+            self.gamma = np.clip(self.gamma, -self.gamma_limit, self.gamma_limit)
 
             # Udpating the logs
             self.log["x"].append(self.x)
