@@ -9,9 +9,6 @@ class Aircraft:
         self.y = y
         self.h = h
 
-        self.constant_speed = constant_speed
-        self.max_speed_limit = 600
-
         # Velocity
         self.v = v
 
@@ -22,6 +19,12 @@ class Aircraft:
         # Constants
         self.dt = 0.01
         self.g  = 9.81
+
+        # Limits
+        self.constant_speed = constant_speed
+        self.max_speed_limit = 600
+        self.psi_limit = 2 * np.pi
+        self.gamma_limit = np.pi / 4
 
         # Log list
         self.log = {
@@ -51,12 +54,15 @@ class Aircraft:
             if not self.constant_speed:
                 self.v += v_dot * self.dt
 
-            # Limit speed
+            self.psi += psi_dot * self.dt
+            self.gamma += gamma_dot * self.dt
+
+            # Limit values
             if self.v > self.max_speed_limit:
                 self.v = self.max_speed_limit
 
-            self.psi += psi_dot * self.dt
-            self.gamma += gamma_dot * self.dt
+            self.psi %= self.psi_limit
+            self.gamma = np.clip(self.gamma, self.gamma_limit, self.gamma_limit)
 
             # Udpating the logs
             self.log["x"].append(self.x)
