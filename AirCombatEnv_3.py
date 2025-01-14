@@ -4,6 +4,7 @@ import gym
 from gym import spaces
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from stable_baselines3 import SAC
 
 class F16Environment(gym.Env):
     """
@@ -29,8 +30,10 @@ class F16Environment(gym.Env):
         self.mu_limits = [-5 * np.pi/12, 5 * np.pi/12]  # Bank angle in radians
 
         # Initialize two aircraft
-        self.aircraft1 = Aircraft(0, 0, 1000, 250, 0, 0)
-        self.aircraft2 = Aircraft(0, 0, 1000, 200, np.pi, 0, constant_speed=True)
+        self.aircraft1 = Aircraft(0, 0, 1000, 250, np.pi, 0)
+        self.aircraft2 = Aircraft(0, 0, 1000, 250, 0, 0)
+
+        self.adversary = SAC.load("models/sac_stationary_point_following_1M_v3" + "/sac")
 
         # Environment parameters
         self.distance_limit = 3000
@@ -41,8 +44,8 @@ class F16Environment(gym.Env):
         """
         Reset the environment to the initial state.
         """
-        self.aircraft1 = Aircraft(0, 0, 1000, 250, 0, 0)
-        self.aircraft2 = Aircraft(0, 1000, 1000, 200, np.pi, 0, constant_speed=True)
+        self.aircraft1 = Aircraft(0, 0, 1000, 250, np.pi, 0)
+        self.aircraft2 = Aircraft(0, 0, 1000, 250, 0, 0)
         
         observation = self._get_observation()
 
@@ -71,15 +74,15 @@ class F16Environment(gym.Env):
         nz1 = self._scale_action(action[1], self.nz_limits)
         mu1 = self._scale_action(action[2], self.mu_limits)
 
-        # Constants for circular motion
-        bank_angle = 5*np.pi/12  # 45 degrees
-        nz2 = 1 / np.cos(bank_angle)  # Coordinated turn
-        nx2 = 1.0  # Maintain level flight
-        mu2 = bank_angle  # Constant bank angle
+        adversary_action = self.adversary_movement()
+
+        nx2 = self._scale_action(adversary_action[0], self.nx_limits)
+        nz2 = self._scale_action(adversary_action[1], self.nz_limits)
+        mu2 = self._scale_action(adversary_action[2], self.mu_limits)
 
         # Update aircraft states
         self.aircraft1.update(nx1, nz1, mu1)
-        self.aircraft2.update(nx2, nz2, mu2) # Circular motion
+        self.aircraft2.update(nx2, nz2, mu2)
         
         # Get the new observation
         observation = self._get_observation()
@@ -136,9 +139,9 @@ class F16Environment(gym.Env):
 
         # WEZ reward
         if self.aircraft1.WEZ(self.aircraft2.x, self.aircraft2.y, self.aircraft2.h):
-            reward += 250
+            reward += 10
         elif self.aircraft2.WEZ(self.aircraft1.x, self.aircraft1.y, self.aircraft1.h):
-            reward -= 20
+            reward -= 2
         else:
             reward += 0
 
@@ -275,3 +278,24 @@ class F16Environment(gym.Env):
 
         # Show the plot
         plt.show()
+
+    def adversary_movement(self):
+        # Adversary observations and actions
+        obs1 = [
+            (self.aircraft2.x - self.aircraft1.x) / self.distance_limit, 
+            (self.aircraft2.y - self.aircraft1.y) / self.distance_limit, 
+            (self.aircraft2.h - self.aircraft1.h) / self.distance_limit,
+        ]
+        obs2 = [
+            self.aircraft2.v / self.aircraft2.max_speed_limit, 
+            self.aircraft2.psi / self.aircraft2.psi_limit, 
+            self.aircraft2.gamma / self.aircraft2.gamma_limit,
+            self.aircraft1.v / self.aircraft1.max_speed_limit, 
+            self.aircraft1.psi / self.aircraft1.psi_limit, 
+            self.aircraft1.gamma / self.aircraft1.gamma_limit
+        ]
+        adversary_obs = np.array(obs1 + obs2, dtype=np.float32)
+
+        adversary_action, _ = self.adversary.predict(adversary_obs, deterministic=True)
+
+        return adversary_action

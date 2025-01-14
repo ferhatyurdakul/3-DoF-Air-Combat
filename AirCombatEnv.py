@@ -34,7 +34,7 @@ class F16Environment(gym.Env):
 
         # Environment parameters
         self.distance_limit = 2000
-        self.step_limit = 1000
+        self.step_limit = 500
         self.number_of_steps = 0
 
     def reset(self):
@@ -129,13 +129,10 @@ class F16Environment(gym.Env):
 
         # WEZ reward
         if self.aircraft1.WEZ(self.aircraft2.x, self.aircraft2.y, self.aircraft2.h):
-            done = True
-            reward += 10
+            reward += 100
         elif self.aircraft2.WEZ(self.aircraft1.x, self.aircraft1.y, self.aircraft1.h):
-            done = True
-            reward -= 2
+            reward -= 20
         else:
-            done = False
             reward += 0
 
         # Distance reward
@@ -149,6 +146,10 @@ class F16Environment(gym.Env):
         if distance > self.distance_limit:
             done = True
             reward += -5
+
+        # Speed penalty
+        if self.aircraft1.v < 100:
+            reward -= (100 - self.aircraft1.v)
 
         return reward, done
 
