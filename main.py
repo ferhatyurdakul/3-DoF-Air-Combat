@@ -6,10 +6,10 @@ from stable_baselines3 import SAC
 
 # ---------- PARAMETERS ----------
 # Environment (Choices -> Stage1Env, Stage2Env, Stage3Env, SubStageEnv)
-env = Stage2Env()
+env = Stage1Env()
 
-# Model name to be saved
-model_name = "sac_moving_target_following_1M_v3"
+# Model name to be saved or evaluated
+model_name = "models/sac_stationary_point_following_1M_v3"
 
 # Train (True) / Evaluation (False)
 train = False
@@ -22,8 +22,7 @@ render = True
 # (Stage2 -> sac_moving_target_following_1M_v3) 
 # (Stage3 -> sac_dofight_1M_v1) 
 # (Stage4 -> sac_dofight_1M_v2) 
-model = SAC.load("sac_stationary_point_following_1M_v3" + "/sac")
-
+model = SAC.load("models/sac_stationary_point_following_1M_v3" + "/sac")
 
 # ---------- CONSTANTS ----------
 log_file  = model_name + "/graphs"
@@ -44,11 +43,14 @@ else:
     obs = env.reset()
 
     done = False
-
+    step = 0
     while not done:
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
-        
+        step += 1
+        if step == 100:
+            done = True 
+
         if render:
             env.render()
         
