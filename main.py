@@ -6,10 +6,10 @@ from stable_baselines3 import SAC
 
 # ---------- PARAMETERS ----------
 # Environment (Choices -> Stage1Env, Stage2Env, Stage3Env, SubStageEnv)
-env = Stage1Env()
+env = SubStageEnv()
 
 # Model name to be saved or evaluated
-model_name = "models/sac_stationary_point_following_1M_v3"
+model_name = "models/sac_dofight_1M_v2"
 
 # Train (True) / Evaluation (False)
 train = False
@@ -17,12 +17,14 @@ train = False
 # To render or not during the evaluation
 render = True 
 
-# Curriculum (if no curriculum, comment the line)
+# To do curriculum or not
 # (Stage1 -> sac_stationary_point_following_1M_v3) 
 # (Stage2 -> sac_moving_target_following_1M_v3) 
 # (Stage3 -> sac_dofight_1M_v1) 
-# (Stage4 -> sac_dofight_1M_v2) 
-model = SAC.load("models/sac_stationary_point_following_1M_v3" + "/sac")
+# (Substage -> sac_dofight_1M_v2) 
+curriculum = False
+curriculum_model = "models/sac_stationary_point_following_1M_v3" 
+
 
 # ---------- CONSTANTS ----------
 log_file  = model_name + "/graphs"
@@ -30,6 +32,9 @@ save_file = model_name + "/saves"
 
 
 # ---------- TRAIN/EVALUATION ----------
+if curriculum:
+    model = SAC.load(curriculum_model + "/sac")
+
 if train:
     model = SAC("MlpPolicy", env, verbose=1, tensorboard_log=log_file)
     
@@ -43,13 +48,10 @@ else:
     obs = env.reset()
 
     done = False
-    step = 0
+
     while not done:
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
-        step += 1
-        if step == 100:
-            done = True 
 
         if render:
             env.render()
